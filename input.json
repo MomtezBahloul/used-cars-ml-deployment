@@ -1,0 +1,22 @@
+[
+  {
+    "registration_year":2005,
+    "horsepower_ps":95,
+    "mileage_km":40000,
+    "brand":"ford",
+    "vehicle_type":"convertible",
+    "transmission":"manual",
+    "fuel_type":"petrol",
+    "unrepaired_damage_reported":"no"
+  },
+  {
+    "registration_year":2013,
+    "horsepower_ps":87,
+    "mileage_km":60000,
+    "brand":"opel",
+    "vehicle_type":"small_car",
+    "transmission":"manual",
+    "fuel_type":"petrol",
+    "unrepaired_damage_reported":"no"
+  }
+]
