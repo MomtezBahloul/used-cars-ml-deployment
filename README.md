@@ -2,8 +2,6 @@
 
 Production-ready machine learning service built with Python 3.12, Scikit-Learn, FastAPI, Pydantic v2, pytest, and Streamlit for 3-class used car price classification (`cheap`, `affordable`, `expensive`).
 
-- **Live Streamlit App:** https://autos-ml-deployment-xxgtnkgeufyw2lggdrqddy.streamlit.app/
-
 ## Project Structure
 
 ```text
@@ -83,8 +81,8 @@ streamlit run client\streamlit_app.py
 
 ## Free Cloud Deployment (Streamlit Community Cloud)
 
-1. **GitHub repository:** `Momtez-bahloul/autos-ml-deployment` (branch `main`, with `models/used_cars_model.joblib` tracked and `data/*.csv` / `.venv/` ignored via `.gitignore`).
+1. **GitHub repository:** `MomtezBahloul/used-cars-ml-deployment` (branch `main`, with `models/used_cars_model.joblib` tracked and `data/*.csv` / `.venv/` ignored via `.gitignore`).
 2. **Streamlit Community Cloud (`https://share.streamlit.io`):**
    - **Main file path:** `client/streamlit_app.py`
    - **Python version:** `3.12`
-   - Pushing to `main` automatically redeploys https://autos-ml-deployment-xxgtnkgeufyw2lggdrqddy.streamlit.app/.
+   - Pushing to `main` automatically redeploys your Streamlit Community Cloud app.
