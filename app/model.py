@@ -1,4 +1,4 @@
-"""Model loading and prediction utilities for the vehicle price classifier."""
+"""Model loading and prediction utilities for the 3-class used car classifier."""
 
 from pathlib import Path
 from typing import Any
@@ -7,7 +7,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "autos_model.joblib"
+MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "used_cars_model.joblib"
 
 
 def load_model(model_path: Path = MODEL_PATH) -> dict[str, Any]:

@@ -1,75 +1,52 @@
-"""Standalone training pipeline for used car price category classification."""
+"""Standalone training pipeline for 3-class used car price classification."""
 
 from pathlib import Path
 
 import joblib
+import numpy as np
 import pandas as pd
 import sklearn
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_PATH = BASE_DIR / "data" / "autos_enriched_dirty_english.csv"
-MODEL_PATH = BASE_DIR / "models" / "autos_model.joblib"
+DATA_PATH = BASE_DIR / "data" / "used_cars_2026_dirty.csv"
+MODEL_PATH = BASE_DIR / "models" / "used_cars_model.joblib"
 INPUT_JSON_PATH = BASE_DIR / "input.json"
 
 MODEL_VERSION = "1.0.0"
-PRICE_THRESHOLD_EUR = 3500
 
-SELECTED_COLUMNS = [
-    "price_eur",
+NUMERIC_COLS = [
     "registration_year",
-    "horsepower_ps",
     "mileage_km",
+    "horsepower_ps",
+    "engine_size_l",
+    "previous_owners",
+]
+CATEGORICAL_COLS = [
     "brand",
     "vehicle_type",
-    "transmission",
     "fuel_type",
-    "unrepaired_damage_reported",
-]
-NUMERIC_SOURCE_COLS = [
-    "price_eur",
-    "registration_year",
-    "horsepower_ps",
-    "mileage_km",
-]
-NUMERIC_FEATURE_COLS = [
-    "registration_year",
-    "horsepower_ps",
-    "mileage_km",
-]
-NOMINAL_FEATURE_COLS = [
-    "brand",
-    "vehicle_type",
     "transmission",
-    "fuel_type",
-    "unrepaired_damage_reported",
+    "unrepaired_damage",
 ]
-TRANSLATIONS = {
-    "vehicle_type": {
-        "kleinwagen": "small_car",
-        "limousine": "sedan",
-        "kombi": "station_wagon",
-        "bus": "van",
-        "cabrio": "convertible",
-        "andere": "other",
-    },
-    "transmission": {
-        "manuell": "manual",
-        "automatik": "automatic",
-    },
-    "fuel_type": {
-        "benzin": "petrol",
-    },
-    "unrepaired_damage_reported": {
-        "nein": "no",
-        "ja": "yes",
-    },
-}
+FEATURE_COLS = NUMERIC_COLS + CATEGORICAL_COLS
+IQR_COLS = [
+    "registration_year",
+    "mileage_km",
+    "horsepower_ps",
+    "engine_size_l",
+]
+INT_COLS = [
+    "registration_year",
+    "mileage_km",
+    "horsepower_ps",
+    "previous_owners",
+]
 
 
 def load_raw_dataset(data_path: Path) -> pd.DataFrame:
@@ -77,14 +54,9 @@ def load_raw_dataset(data_path: Path) -> pd.DataFrame:
     if not data_path.exists():
         raise FileNotFoundError(
             f"Fichier de données introuvable : {data_path}. "
-            "Placez 'autos_enriched_dirty_english.csv' dans le dossier 'data/'."
+            "Placez 'used_cars_2026_dirty.csv' dans le dossier 'data/'."
         )
-    return pd.read_csv(
-        data_path,
-        sep=";",
-        encoding="utf-8-sig",
-        low_memory=False,
-    )
+    return pd.read_csv(data_path)
 
 
 def remove_iqr_outliers(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
@@ -101,61 +73,86 @@ def remove_iqr_outliers(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
 
 
 def clean_dataset(raw_df: pd.DataFrame) -> pd.DataFrame:
-    """Clean raw listings, harmonize categories, impute nulls, and remove outliers."""
-    df = raw_df.drop_duplicates()
-    df = df[SELECTED_COLUMNS].copy()
+    """Clean messy listings, impute missing values, and filter IQR outliers."""
+    df = raw_df.drop_duplicates().copy()
+    df = df.drop(columns=[c for c in ("listing_id", "currency") if c in df.columns])
 
-    for col in NUMERIC_SOURCE_COLS:
+    for col in ("mileage_km", "horsepower_ps"):
+        df[col] = (
+            df[col]
+            .astype(str)
+            .str.replace(r"[^0-9.\-]", "", regex=True)
+        )
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    for col, mapping in TRANSLATIONS.items():
-        df[col] = df[col].replace(mapping)
+    for col in ("registration_year", "engine_size_l", "previous_owners"):
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    df = df.dropna(
-        subset=["price_eur", "registration_year", "horsepower_ps", "mileage_km", "brand"]
+    for col in CATEGORICAL_COLS:
+        df[col] = (
+            df[col]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .replace({"nan": np.nan, "": np.nan})
+        )
+
+    df["price_category"] = (
+        df["price_category"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+        .replace({"nan": np.nan, "": np.nan})
     )
 
-    df = df[
-        df["price_eur"].between(100, 150000)
-        & df["registration_year"].between(1960, 2016)
-        & df["horsepower_ps"].between(20, 1000)
-    ].copy()
+    if "listing_date" in df.columns:
+        df["listing_date"] = pd.to_datetime(
+            df["listing_date"],
+            format="mixed",
+            dayfirst=True,
+            errors="coerce",
+        )
+        df = df.drop(columns=["listing_date"])
 
-    for col in ("transmission", "fuel_type"):
+    df = df.dropna(subset=["brand", "price_category"]).copy()
+
+    df["registration_year"] = df["registration_year"].fillna(
+        round(float(df["registration_year"].mean()))
+    )
+    df["engine_size_l"] = df["engine_size_l"].fillna(
+        round(float(df["engine_size_l"].mean()), 1)
+    )
+
+    for col in ("mileage_km", "horsepower_ps"):
+        df[col] = df[col].fillna(df[col].median())
+
+    for col in ("previous_owners", "fuel_type", "transmission"):
         mode_series = df[col].mode(dropna=True)
         if mode_series.empty:
             raise ValueError(f"Impossible de calculer le mode pour la colonne '{col}'.")
         df[col] = df[col].fillna(mode_series.iloc[0])
 
-    for col in ("vehicle_type", "unrepaired_damage_reported"):
+    for col in ("vehicle_type", "unrepaired_damage"):
         df[col] = df[col].fillna("unknown")
 
-    df = remove_iqr_outliers(df, ["registration_year", "horsepower_ps"])
+    df = remove_iqr_outliers(df, IQR_COLS)
 
-    for col in NUMERIC_FEATURE_COLS:
+    for col in INT_COLS:
         df[col] = df[col].round().astype(int)
+    df["engine_size_l"] = df["engine_size_l"].round(1).astype(float)
 
     return df
 
 
 def build_pipeline() -> Pipeline:
-    """Create the scikit-learn preprocessing and RandomForest classifier pipeline."""
+    """Create the scikit-learn preprocessing and LogisticRegression pipeline."""
     preprocessor = ColumnTransformer(
         transformers=[
-            ("num", StandardScaler(), NUMERIC_FEATURE_COLS),
-            (
-                "cat",
-                OneHotEncoder(handle_unknown="ignore"),
-                NOMINAL_FEATURE_COLS,
-            ),
+            ("num", StandardScaler(), NUMERIC_COLS),
+            ("cat", OneHotEncoder(handle_unknown="ignore"), CATEGORICAL_COLS),
         ]
     )
-    classifier = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=15,
-        random_state=42,
-        n_jobs=-1,
-    )
+    classifier = LogisticRegression(max_iter=1000, random_state=42)
     return Pipeline(
         steps=[
             ("preprocessor", preprocessor),
@@ -167,9 +164,11 @@ def build_pipeline() -> Pipeline:
 def export_sample_inputs(x_test: pd.DataFrame, output_path: Path) -> None:
     """Export two valid sample records from X_test matching API input bounds."""
     valid_samples = x_test[
-        x_test["registration_year"].between(1985, 2016)
-        & x_test["horsepower_ps"].between(20, 255)
-        & x_test["mileage_km"].between(5000, 150000)
+        x_test["registration_year"].between(2010, 2026)
+        & x_test["mileage_km"].between(0, 300000)
+        & x_test["horsepower_ps"].between(50, 300)
+        & x_test["engine_size_l"].between(0.0, 4.0)
+        & x_test["previous_owners"].between(1, 5)
     ]
     sample_df = valid_samples.head(2) if len(valid_samples) >= 2 else x_test.head(2)
     sample_df.to_json(output_path, orient="records", indent=2)
@@ -180,13 +179,9 @@ def train_and_save() -> None:
     raw_df = load_raw_dataset(DATA_PATH)
     cleaned_df = clean_dataset(raw_df)
 
-    price_category = cleaned_df["price_eur"].map(
-        lambda price: "expensive" if price >= PRICE_THRESHOLD_EUR else "affordable"
-    )
-    features = cleaned_df.drop(columns=["price_eur"])
-
+    features = cleaned_df[FEATURE_COLS]
     label_encoder = LabelEncoder()
-    target = label_encoder.fit_transform(price_category)
+    target = label_encoder.fit_transform(cleaned_df["price_category"])
 
     x_train, x_test, y_train, y_test = train_test_split(
         features,

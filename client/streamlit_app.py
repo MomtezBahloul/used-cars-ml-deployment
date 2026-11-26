@@ -1,4 +1,4 @@
-"""Standalone Streamlit UI for estimating used vehicle price categories."""
+"""Standalone Streamlit UI for 3-class used car price classification (2026)."""
 
 from pathlib import Path
 import sys
@@ -13,44 +13,22 @@ from app.model import load_model, predict
 from app.schemas import CarFeatures
 
 BRANDS = [
-    "alfa_romeo",
     "audi",
     "bmw",
-    "chevrolet",
-    "chrysler",
     "citroen",
     "dacia",
-    "daewoo",
-    "daihatsu",
     "fiat",
     "ford",
-    "honda",
     "hyundai",
-    "jaguar",
-    "jeep",
     "kia",
-    "lada",
-    "lancia",
-    "land_rover",
-    "mazda",
     "mercedes_benz",
-    "mini",
-    "mitsubishi",
-    "nissan",
     "opel",
     "peugeot",
-    "porsche",
     "renault",
-    "rover",
-    "saab",
     "seat",
     "skoda",
-    "smart",
-    "sonstige_autos",
-    "subaru",
-    "suzuki",
+    "tesla",
     "toyota",
-    "trabant",
     "volkswagen",
     "volvo",
 ]
@@ -58,26 +36,23 @@ BRANDS = [
 VEHICLE_TYPES = [
     "convertible",
     "coupe",
-    "other",
+    "hatchback",
     "sedan",
-    "small_car",
     "station_wagon",
     "suv",
     "unknown",
     "van",
 ]
 
-TRANSMISSIONS = ["automatic", "manual"]
-
 FUEL_TYPES = [
-    "cng",
     "diesel",
     "electric",
     "hybrid",
     "lpg",
-    "other",
     "petrol",
 ]
+
+TRANSMISSIONS = ["automatic", "manual"]
 
 DAMAGE_OPTIONS = ["no", "unknown", "yes"]
 
@@ -89,54 +64,68 @@ def get_model_bundle():
 
 
 st.set_page_config(
-    page_title="Estimation Catégorie de Prix Véhicule",
+    page_title="Estimation Catégorie de Prix Véhicule (2026)",
     layout="centered",
 )
-st.title("Estimation Catégorie de Prix Véhicule")
+st.title("Estimation Catégorie de Prix Véhicule (2026)")
 
 left_col, right_col = st.columns(2)
 
 with left_col:
     registration_year = st.number_input(
         "Année de mise en circulation",
-        min_value=1985,
-        max_value=2016,
-        value=2012,
-        step=1,
-    )
-    horsepower_ps = st.number_input(
-        "Puissance (PS)",
-        min_value=20,
-        max_value=255,
-        value=140,
+        min_value=2010,
+        max_value=2026,
+        value=2022,
         step=1,
     )
     mileage_km = st.number_input(
         "Kilométrage (km)",
-        min_value=5000,
-        max_value=150000,
-        value=80000,
+        min_value=0,
+        max_value=300000,
+        value=65000,
         step=1000,
     )
-    brand = st.selectbox("Marque", BRANDS, index=BRANDS.index("audi"))
+    horsepower_ps = st.number_input(
+        "Puissance (PS)",
+        min_value=50,
+        max_value=300,
+        value=130,
+        step=1,
+    )
+    engine_size_l = st.number_input(
+        "Cylindrée (L) - 0.0 pour électrique",
+        min_value=0.0,
+        max_value=4.0,
+        value=1.6,
+        step=0.1,
+    )
+    previous_owners = st.number_input(
+        "Nombre de propriétaires précédents",
+        min_value=1,
+        max_value=5,
+        value=1,
+        step=1,
+    )
 
 with right_col:
+    brand = st.selectbox("Marque", BRANDS, index=BRANDS.index("toyota"))
     vehicle_type = st.selectbox(
         "Type de véhicule",
         VEHICLE_TYPES,
-        index=VEHICLE_TYPES.index("sedan"),
+        index=VEHICLE_TYPES.index("suv"),
+    )
+    fuel_type = st.selectbox(
+        "Carburant",
+        FUEL_TYPES,
+        index=FUEL_TYPES.index("hybrid"),
     )
     transmission = st.selectbox(
         "Transmission",
         TRANSMISSIONS,
         index=TRANSMISSIONS.index("automatic"),
     )
-    fuel_type = st.selectbox(
-        "Carburant",
-        FUEL_TYPES,
-        index=FUEL_TYPES.index("diesel"),
-    )
-    unrepaired_damage_reported = st.selectbox(
+    unrepaired_damage = st.selectbox(
         "Dommages non réparés",
         DAMAGE_OPTIONS,
         index=DAMAGE_OPTIONS.index("no"),
@@ -145,13 +134,15 @@ with right_col:
 if st.button("Prédire"):
     payload = {
         "registration_year": int(registration_year),
-        "horsepower_ps": int(horsepower_ps),
         "mileage_km": int(mileage_km),
+        "horsepower_ps": int(horsepower_ps),
+        "engine_size_l": round(float(engine_size_l), 1),
+        "previous_owners": int(previous_owners),
         "brand": brand,
         "vehicle_type": vehicle_type,
-        "transmission": transmission,
         "fuel_type": fuel_type,
-        "unrepaired_damage_reported": unrepaired_damage_reported,
+        "transmission": transmission,
+        "unrepaired_damage": unrepaired_damage,
     }
     try:
         validated = CarFeatures(**payload)

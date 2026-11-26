@@ -1,22 +1,26 @@
 [
   {
-    "registration_year":2005,
-    "horsepower_ps":95,
-    "mileage_km":40000,
-    "brand":"ford",
-    "vehicle_type":"convertible",
-    "transmission":"manual",
-    "fuel_type":"petrol",
-    "unrepaired_damage_reported":"no"
+    "registration_year":2025,
+    "mileage_km":24000,
+    "horsepower_ps":156,
+    "engine_size_l":1.6,
+    "previous_owners":2,
+    "brand":"audi",
+    "vehicle_type":"hatchback",
+    "fuel_type":"hybrid",
+    "transmission":"automatic",
+    "unrepaired_damage":"no"
   },
   {
-    "registration_year":2013,
-    "horsepower_ps":87,
-    "mileage_km":60000,
-    "brand":"opel",
-    "vehicle_type":"small_car",
-    "transmission":"manual",
+    "registration_year":2026,
+    "mileage_km":2000,
+    "horsepower_ps":142,
+    "engine_size_l":1.2,
+    "previous_owners":1,
+    "brand":"volkswagen",
+    "vehicle_type":"hatchback",
     "fuel_type":"petrol",
-    "unrepaired_damage_reported":"no"
+    "transmission":"automatic",
+    "unrepaired_damage":"no"
   }
 ]

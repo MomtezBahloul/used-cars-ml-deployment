@@ -1,4 +1,4 @@
-"""FastAPI application entrypoint for vehicle price category classification."""
+"""FastAPI application entrypoint for 3-class used car price classification."""
 
 from contextlib import asynccontextmanager
 import logging
@@ -14,7 +14,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s - %(message)s",
 )
-logger = logging.getLogger("autos-ml-api")
+logger = logging.getLogger("used-cars-api")
 
 state: dict[str, Any] = {}
 
@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="API Classification Prix Véhicules",
+    title="API Classification Prix Véhicules 2026",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -49,7 +49,7 @@ app = FastAPI(
 @app.get("/")
 def read_root() -> dict[str, str]:
     """Return a basic operational status message."""
-    return {"message": "API Classification Prix Véhicules opérationnelle"}
+    return {"message": "API Classification Prix Véhicules 2026 opérationnelle"}
 
 
 @app.get("/health")
@@ -65,7 +65,7 @@ def health_check() -> dict[str, Any]:
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict_price_category(features: CarFeatures) -> dict[str, Any]:
-    """Predict whether a used car belongs to the affordable or expensive category."""
+    """Predict whether a used car is cheap, affordable, or expensive."""
     bundle = state.get("model")
     if bundle is None:
         raise HTTPException(status_code=503, detail="Modèle non chargé")

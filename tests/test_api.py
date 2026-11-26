@@ -6,25 +6,42 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 EXPENSIVE_CAR = {
-    "registration_year": 2014,
-    "horsepower_ps": 190,
-    "mileage_km": 40000,
-    "brand": "audi",
+    "registration_year": 2025,
+    "mileage_km": 15000,
+    "horsepower_ps": 180,
+    "engine_size_l": 2.0,
+    "previous_owners": 1,
+    "brand": "bmw",
     "vehicle_type": "suv",
+    "fuel_type": "hybrid",
     "transmission": "automatic",
-    "fuel_type": "diesel",
-    "unrepaired_damage_reported": "no",
+    "unrepaired_damage": "no",
+}
+
+CHEAP_CAR = {
+    "registration_year": 2012,
+    "mileage_km": 210000,
+    "horsepower_ps": 70,
+    "engine_size_l": 1.2,
+    "previous_owners": 4,
+    "brand": "dacia",
+    "vehicle_type": "hatchback",
+    "fuel_type": "petrol",
+    "transmission": "manual",
+    "unrepaired_damage": "yes",
 }
 
 AFFORDABLE_CAR = {
-    "registration_year": 1998,
-    "horsepower_ps": 60,
-    "mileage_km": 150000,
-    "brand": "opel",
-    "vehicle_type": "small_car",
-    "transmission": "manual",
+    "registration_year": 2021,
+    "mileage_km": 75000,
+    "horsepower_ps": 115,
+    "engine_size_l": 1.6,
+    "previous_owners": 2,
+    "brand": "toyota",
+    "vehicle_type": "sedan",
     "fuel_type": "petrol",
-    "unrepaired_damage_reported": "yes",
+    "transmission": "manual",
+    "unrepaired_damage": "no",
 }
 
 
@@ -39,7 +56,7 @@ def test_root(client: TestClient) -> None:
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {
-        "message": "API Classification Prix Véhicules opérationnelle"
+        "message": "API Classification Prix Véhicules 2026 opérationnelle"
     }
 
 
@@ -55,15 +72,19 @@ def test_health(client: TestClient) -> None:
 def test_predict_expensive_car(client: TestClient) -> None:
     response = client.post("/predict", json=EXPENSIVE_CAR)
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["class_name"] == "expensive"
+    assert response.json()["class_name"] == "expensive"
+
+
+def test_predict_cheap_car(client: TestClient) -> None:
+    response = client.post("/predict", json=CHEAP_CAR)
+    assert response.status_code == 200
+    assert response.json()["class_name"] == "cheap"
 
 
 def test_predict_affordable_car(client: TestClient) -> None:
     response = client.post("/predict", json=AFFORDABLE_CAR)
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["class_name"] == "affordable"
+    assert response.json()["class_name"] == "affordable"
 
 
 def test_predict_missing_field(client: TestClient) -> None:

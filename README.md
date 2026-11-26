@@ -1,6 +1,8 @@
-# Autos ML Deployment
+# Used Cars ML Deployment (2026)
 
-Production-ready machine learning service built with Python 3.12, Scikit-Learn, FastAPI, Pydantic v2, pytest, and Streamlit for binary used-car price classification (`affordable` vs `expensive`, threshold 3,500 EUR).
+Production-ready machine learning service built with Python 3.12, Scikit-Learn, FastAPI, Pydantic v2, pytest, and Streamlit for 3-class used car price classification (`cheap`, `affordable`, `expensive`).
+
+- **Live Streamlit App:** https://autos-ml-deployment-xxgtnkgeufyw2lggdrqddy.streamlit.app/
 
 ## Project Structure
 
@@ -18,9 +20,9 @@ autos-ml-deployment/
 ├── tests/
 │   └── test_api.py
 ├── data/
-│   └── autos_enriched_dirty_english.csv
+│   └── used_cars_2026_dirty.csv
 ├── models/
-│   └── autos_model.joblib
+│   └── used_cars_model.joblib
 ├── input.json
 ├── requirements.txt
 ├── .python-version
@@ -49,14 +51,13 @@ pip install -r requirements.txt
 
 ### 3. Prepare data and train the model
 
-Ensure `autos_enriched_dirty_english.csv` is placed inside `data/`:
+Ensure `used_cars_2026_dirty.csv` is placed inside `data\`, then run:
 
 ```powershell
-Copy-Item ..\autos_enriched_dirty_english.csv .\data\autos_enriched_dirty_english.csv
 python training\train_model.py
 ```
 
-This generates `models\autos_model.joblib` and sample records in `input.json`.
+This generates `models\used_cars_model.joblib` and 2 sample records in `input.json`.
 
 ### 4. Run the FastAPI server (optional REST API)
 
@@ -72,9 +73,9 @@ Interactive Swagger docs will be available at `http://127.0.0.1:8000/docs`.
 pytest -v
 ```
 
-### 6. Launch the Streamlit client
+### 6. Launch the standalone Streamlit client
 
-`client\streamlit_app.py` runs standalone by loading `models\autos_model.joblib` directly in-process (no need to run FastAPI alongside it):
+`client\streamlit_app.py` loads `models\used_cars_model.joblib` directly in-process (no separate FastAPI server required):
 
 ```powershell
 streamlit run client\streamlit_app.py
@@ -82,10 +83,8 @@ streamlit run client\streamlit_app.py
 
 ## Free Cloud Deployment (Streamlit Community Cloud)
 
-1. **Push to GitHub:** Ensure `models/autos_model.joblib` is committed (`data/*.csv` and `.venv/` remain ignored via `.gitignore`).
-2. **Deploy on Streamlit Community Cloud (`https://share.streamlit.io`):**
-   - **Repository:** `Momtez-bahloul/autos-ml-deployment`
-   - **Branch:** `main`
+1. **GitHub repository:** `Momtez-bahloul/autos-ml-deployment` (branch `main`, with `models/used_cars_model.joblib` tracked and `data/*.csv` / `.venv/` ignored via `.gitignore`).
+2. **Streamlit Community Cloud (`https://share.streamlit.io`):**
    - **Main file path:** `client/streamlit_app.py`
-   - **Advanced settings -> Python version:** `3.12`
-   - No environment variables or secrets are required.
+   - **Python version:** `3.12`
+   - Pushing to `main` automatically redeploys https://autos-ml-deployment-xxgtnkgeufyw2lggdrqddy.streamlit.app/.
